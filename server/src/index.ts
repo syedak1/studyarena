@@ -4,7 +4,13 @@ import http from "http";
 import { Server as SocketServer } from "socket.io";
 import dotenv from "dotenv";
 
+<<<<<<< HEAD
 // Load .env variables BEFORE importing anything that uses them
+=======
+import resourcesRoutes from "./routes/resources";
+import quizRoutes from "./routes/quizzes";
+
+>>>>>>> person-c-backup
 dotenv.config();
 
 // Import routes
@@ -37,6 +43,7 @@ app.use(cors({
 }));
 app.use(express.json());
 
+<<<<<<< HEAD
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/resources", resourceRoutes);
@@ -44,6 +51,10 @@ app.use("/api/quizzes", quizRoutes);
 app.use("/api/rooms", roomRoutes);
 // ─── Person C: add any new route files here ───
 // app.use("/api/some-new-route", someNewRoutes);
+=======
+app.use("/api/resources", resourcesRoutes);
+app.use("/api/quiz", quizRoutes);
+>>>>>>> person-c-backup
 
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
