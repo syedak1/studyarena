@@ -50,7 +50,33 @@ function Navbar({ name }: { name: string }) {
         STUDY<span style={{ color: '#FFCB05' }}>ARENA</span>
         <span style={{ fontSize: 11, fontFamily: 'monospace', color: 'rgba(255,255,255,0.4)', marginLeft: 10, letterSpacing: '0.08em' }}>UMICH</span>
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+        <button
+          onClick={() => router.push('/')}
+          style={{
+            background: 'transparent',
+            border: '1px solid rgba(255,255,255,0.15)',
+            color: 'rgba(255,255,255,0.6)',
+            padding: '5px 14px',
+            fontFamily: 'monospace',
+            fontSize: 11,
+            letterSpacing: '0.08em',
+            textTransform: 'uppercase',
+            cursor: 'pointer',
+            borderRadius: 6,
+            transition: 'all 0.15s',
+          }}
+          onMouseEnter={e => {
+            (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.4)';
+            (e.currentTarget as HTMLButtonElement).style.color = '#fff';
+          }}
+          onMouseLeave={e => {
+            (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.15)';
+            (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.6)';
+          }}
+        >
+          ← Home
+        </button>
         <div style={{
           width: 32, height: 32, borderRadius: '50%',
           background: '#FFCB05', color: '#00274C',
@@ -95,7 +121,6 @@ export default function Dashboard() {
     <div style={{ minHeight: '100vh', background: '#f5f4f0', fontFamily: 'sans-serif' }}>
       <Navbar name={name} />
 
-      {/* Hero banner */}
       <div style={{
         background: 'linear-gradient(135deg, #00274C 0%, #003a6e 100%)',
         borderBottom: '4px solid #FFCB05',
@@ -103,7 +128,7 @@ export default function Dashboard() {
       }}>
         <div style={{ maxWidth: 920, margin: '0 auto' }}>
           <h1 style={{ fontSize: '1.7rem', fontWeight: 800, color: '#fff', marginBottom: 6 }}>
-            Welcome back, {name} 👋
+            Welcome back, {name}
           </h1>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
             <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.65)', margin: 0 }}>
@@ -127,7 +152,6 @@ export default function Dashboard() {
 
       <div style={{ maxWidth: 920, margin: '0 auto', padding: '2rem 1.5rem' }}>
 
-        {/* Tabs */}
         <div style={{ display: 'flex', borderBottom: '2px solid rgba(0,0,0,0.08)', marginBottom: '1.5rem' }}>
           {(['my', 'catalog'] as const).map(tab => (
             <button key={tab} onClick={() => setActiveTab(tab)} style={{
@@ -144,7 +168,6 @@ export default function Dashboard() {
           ))}
         </div>
 
-        {/* MY COURSES TAB */}
         {activeTab === 'my' && (
           myCourses.length === 0 ? (
             <div style={{
@@ -153,7 +176,6 @@ export default function Dashboard() {
               background: '#fff',
               borderRadius: 14,
             }}>
-              <div style={{ fontSize: 32, marginBottom: 12 }}>📚</div>
               <div style={{ fontSize: 16, fontWeight: 700, color: '#00274C', marginBottom: 8 }}>No courses yet</div>
               <div style={{ fontSize: 14, color: '#8a8880', marginBottom: 20 }}>
                 Head to the Course Catalog to add your classes.
@@ -193,14 +215,11 @@ export default function Dashboard() {
                     (e.currentTarget as HTMLDivElement).style.boxShadow = 'none';
                   }}
                 >
-                  {/* Top accent bar */}
                   <div style={{
                     position: 'absolute', top: 0, left: 0, right: 0, height: 5,
                     background: categoryColors[course.category] || '#00274C',
                     borderRadius: '14px 14px 0 0',
                   }} />
-
-                  {/* Category badge — now maize */}
                   <div style={{
                     display: 'inline-block', fontSize: 10, fontFamily: 'monospace',
                     letterSpacing: '0.08em', textTransform: 'uppercase',
@@ -208,10 +227,8 @@ export default function Dashboard() {
                     padding: '3px 9px', marginBottom: 10, fontWeight: 800,
                     borderRadius: 6,
                   }}>{course.category}</div>
-
                   <div style={{ fontSize: 20, fontWeight: 800, color: '#00274C', marginBottom: 4 }}>{course.code}</div>
                   <div style={{ fontSize: 13, color: '#7a7870', marginBottom: 16, lineHeight: 1.4 }}>{course.name}</div>
-
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto' }}>
                     <div style={{
                       fontSize: 11, fontFamily: 'monospace', color: '#fff',
@@ -237,7 +254,6 @@ export default function Dashboard() {
           )
         )}
 
-        {/* CATALOG TAB */}
         {activeTab === 'catalog' && (
           <>
             <input
