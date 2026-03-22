@@ -2,94 +2,89 @@ import axios from 'axios';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
-const api = axios.create({
-  baseURL: `${API_BASE}/api`,
-});
+const api = axios.create({ baseURL: `${API_BASE}/api` });
 
-// automatically attach JWT token to every request
 api.interceptors.request.use((config) => {
   if (typeof window !== 'undefined') {
     const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
+    if (token) config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });
 
-// ─── simple auth ───
+function getPlayerUid(): string {
+  if (typeof window === 'undefined') return '';
+  let uid = localStorage.getItem('playerUid');
+  if (!uid) {
+    uid = Math.random().toString(36).slice(2, 10);
+    localStorage.setItem('playerUid', uid);
+  }
+  return uid;
+}
 
 export async function silentAuth(name: string) {
-  // creates an account if it doesn't exist, or logs in if it does.
-  // the name as both the display name and a fake email/password.
-  // good enough for now
-  const fakeEmail = `${name.toLowerCase().replace(/\s+/g, '.')}@studyarena.demo`;
-  const fakePassword = `demo-${name.toLowerCase()}`;
-
+  const uid = getPlayerUid();
+  const email = `player.${uid}@studyarena.demo`;
+  const password = `demo-${uid}`;
+  let data;
   try {
-    // try to sign up first
-    const res = await api.post('/auth/signup', {
-      email: fakeEmail,
-      password: fakePassword,
-      name: name,
-      school: 'University of Michigan',
-      schoolType: 'COLLEGE',
-    });
-    localStorage.setItem('token', res.data.token);
-    localStorage.setItem('userId', res.data.user.id);
-    return res.data;
+    data = (await api.post('/auth/signup', { email, password, name, school: 'University of Michigan', schoolType: 'COLLEGE' })).data;
   } catch {
-    // signup fails (email taken), log in instead
-    try {
-      const res = await api.post('/auth/login', {
-        email: fakeEmail,
-        password: fakePassword,
-      });
-      localStorage.setItem('token', res.data.token);
-      localStorage.setItem('userId', res.data.user.id);
-      return res.data;
-    } catch (loginErr) {
-      console.error('Auth failed:', loginErr);
-      throw loginErr;
-    }
+    data = (await api.post('/auth/login', { email, password })).data;
   }
+  localStorage.setItem('token', data.token);
+  localStorage.setItem('userId', data.user.id);
+  localStorage.setItem('studentName', name);
+  return data;
 }
 
-// ─── Resources ───
+export function getToken() { return typeof window !== 'undefined' ? localStorage.getItem('token') : null; }
+export function getUserId() { return typeof window !== 'undefined' ? localStorage.getItem('userId') : null; }
+export function isLoggedIn() { return !!getToken(); }
 
 export async function uploadResource(file: File, title: string) {
-  const formData = new FormData();
-  formData.append('file', file);
-  formData.append('title', title);
-
-  const res = await api.post('/resources/upload', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
-  return res.data;
+  const fd = new FormData(); fd.append('file', file); fd.append('title', title);
+  return (await api.post('/resources/upload', fd, { headers: { 'Content-Type': 'multipart/form-data' } })).data;
 }
 
-// ─── Quizzes ───
-
-export async function generateQuiz(resourceId: string, numQuestions: number = 5) {
-  const res = await api.post('/quizzes/generate', { resourceId, numQuestions });
-  return res.data;
+export async function generateQuiz(resourceId: string, numQuestions = 5) {
+  return (await api.post('/quizzes/generate', { resourceId, numQuestions })).data;
 }
 
-export async function getQuiz(quizId: string) {
-  const res = await api.get(`/quizzes/${quizId}`);
-  return res.data;
-}
-
-// ─── Rooms ───
-
-export async function createRoom(quizId: string, timePerQuestion: number = 20) {
-  const res = await api.post('/rooms/create', { quizId, timePerQuestion });
-  return res.data;
+export async function createRoom(quizId: string, timePerQuestion = 20) {
+  return (await api.post('/rooms/create', { quizId, timePerQuestion })).data;
 }
 
 export async function getRoomByCode(joinCode: string) {
-  const res = await api.get(`/rooms/${joinCode}`);
-  return res.data;
+  return (await api.get(`/rooms/${joinCode}`)).data;
+}
+
+// ─── Leaderboard ───
+
+export interface LeaderboardEntry {
+  rank: number;
+  userId: string;
+  name: string;
+  totalScore: number;
+  totalCorrect: number;
+  totalAnswered: number;
+  gamesPlayed: number;
+}
+
+export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
+  try {
+    return (await api.get('/leaderboard')).data;
+  } catch {
+    return [];
+  }
+}
+
+export async function getMyStats() {
+  try {
+    return (await api.get('/leaderboard/me')).data;
+  } catch {
+    return { totalScore: 0, totalCorrect: 0, totalAnswered: 0, gamesPlayed: 0 };
+  }
 }
 
 export default api;

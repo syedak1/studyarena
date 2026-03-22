@@ -6,7 +6,7 @@ import Navbar from '../../components/Navbar';
 const features = [
   {
     id: 'battles',
-    icon: '🏆',
+    icon: '',
     title: 'Competitive Quiz Battles',
     tag: 'Real-time Multiplayer',
     desc: 'Create a room, share a 6-digit code, and battle other friends in the same classes. Questions are served one at a time with a countdown timer. A live leaderboard updates after every question.',
@@ -14,7 +14,7 @@ const features = [
   },
   {
     id: 'ai',
-    icon: '⚡',
+    icon: '',
     title: 'AI Generation',
     tag: 'Upload any PDF',
     desc: 'Drop in any PDF such as lecture slides, past exams, and textbook chapters. Our AI reads the material and generates multiple choice questions that test a students ability. Questions are ready in under 15 seconds.',
@@ -22,7 +22,7 @@ const features = [
   },
   {
     id: 'community',
-    icon: '👥',
+    icon: '',
     title: 'Course Community',
     tag: 'Notes + discussion',
     desc: 'Every course has its own space where students can upload resources, browse what others have shared, and discuss course material. Think of it as a course-specific GroupChat with shared notes built in.',
