@@ -1,123 +1,179 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Navbar from '../../components/Navbar';
+import { Zap, BookOpen, Trophy } from 'lucide-react';
+import { silentAuth } from '../../lib/api';
 
-export default function About() {
+const features = [
+  {
+    icon: Zap,
+    title: 'Live Quiz Battles',
+    desc: 'Challenge classmates in real-time. Answer faster, climb the board, dominate your lecture.',
+  },
+  {
+    icon: BookOpen,
+    title: 'Shared Note Library',
+    desc: "Access notes from every course. Upload yours, unlock everyone else's.",
+  },
+  {
+    icon: Trophy,
+    title: 'Course Leaderboards',
+    desc: 'Every quiz room tracks your rank. Study more, score higher, own the semester.',
+  },
+];
+
+export default function Home() {
+  const [name, setName] = useState('');
+  const [focused, setFocused] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
 
+  useEffect(() => {
+    setMounted(true);
+    const input = document.querySelector('input');
+    if (input) input.focus({ preventScroll: true });
+  }, []);
+
+  async function handleEnter() {
+    if (!name.trim() || loading) return;
+    setLoading(true);
+    try {
+      localStorage.setItem('studentName', name.trim());
+      // Silently create account / login on the backend
+      await silentAuth(name.trim());
+      router.push('/dashboard');
+    } catch (err) {
+      console.error('Auth error:', err);
+      // Still navigate even if backend is down (graceful degradation)
+      router.push('/dashboard');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const navItems = [
+    { label: 'About', href: '/about' },
+    { label: 'Team', href: '/team' },
+    { label: 'Features', href: '/features' },
+  ];
+
   return (
-    <div style={{ background: '#00274C', minHeight: '100vh', fontFamily: 'sans-serif', color: '#fff' }}>
-      <Navbar />
+    <div style={{ background: '#00274C', minHeight: '100vh', fontFamily: '"DM Sans", "Segoe UI", sans-serif', color: '#fff', position: 'relative', overflowX: 'hidden' }}>
 
-      <div style={{ maxWidth: 900, margin: '0 auto', padding: '7rem 2.5rem 5rem' }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;700&display=swap');
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+        @keyframes fadeUp { from { opacity:0; transform:translateY(22px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes grain {
+          0%,100%{transform:translate(0,0)} 10%{transform:translate(-2%,-3%)}
+          30%{transform:translate(3%,2%)} 50%{transform:translate(-1%,4%)}
+          70%{transform:translate(4%,-1%)} 90%{transform:translate(-3%,1%)}
+        }
+        .f1{animation:fadeUp 0.7s ease both;animation-delay:0.05s;}
+        .f2{animation:fadeUp 0.7s ease both;animation-delay:0.15s;}
+        .f3{animation:fadeUp 0.7s ease both;animation-delay:0.28s;}
+        .f4{animation:fadeUp 0.7s ease both;animation-delay:0.42s;}
+        .f5{animation:fadeUp 0.7s ease both;animation-delay:0.56s;}
+        input::placeholder{color:rgba(255,255,255,0.22);}
+        input:focus{outline:none;}
+        .cta-btn{
+          padding:15px 28px; background:#FFCB05; border:none; color:#00274C;
+          font-family:'DM Mono',monospace; font-size:0.78rem; font-weight:500;
+          letter-spacing:0.1em; text-transform:uppercase; cursor:pointer;
+          transition:all 0.2s; white-space:nowrap; flex-shrink:0;
+        }
+        .cta-btn:hover{ background:#ffe040; box-shadow:0 0 28px rgba(255,203,5,0.45); transform:translateY(-1px); }
+        .cta-btn:disabled{ background:rgba(255,255,255,0.06); color:rgba(255,255,255,0.2); cursor:not-allowed; box-shadow:none; transform:none; }
+        .feature-card{
+          padding:1.75rem; background:rgba(255,255,255,0.03);
+          border:1px solid rgba(255,255,255,0.07); border-radius:14px; transition:all 0.25s;
+        }
+        .feature-card:hover{ background:rgba(255,203,5,0.05); border-color:rgba(255,203,5,0.2); transform:translateY(-3px); }
+        .nav-link{
+          padding:0 1rem; height:56px; display:flex; align-items:center;
+          font-size:13px; color:rgba(255,255,255,0.55); cursor:pointer;
+          transition:color 0.15s; user-select:none;
+        }
+        .nav-link:hover{color:#fff;}
+      `}</style>
 
-        {/* WHAT IS STUDYARENA */}
-        <div id="about">
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: 8,
-            fontFamily: 'monospace', fontSize: '0.68rem', letterSpacing: '0.16em',
-            textTransform: 'uppercase', color: 'rgba(255,203,5,0.7)', marginBottom: '1rem',
-            background: 'rgba(255,203,5,0.08)', padding: '6px 14px', borderRadius: 20,
-          }}>
-            What is StudyArena?
+      <div style={{ position:'fixed', inset:0, zIndex:0, pointerEvents:'none', opacity:0.04, backgroundImage:`url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`, backgroundSize:'200px 200px', animation:'grain 8s steps(1) infinite' }} />
+      <div style={{ position:'fixed', top:-250, right:-250, width:700, height:700, borderRadius:'50%', background:'radial-gradient(circle, rgba(255,203,5,0.07) 0%, transparent 65%)', pointerEvents:'none', zIndex:0 }} />
+      <div style={{ position:'fixed', bottom:-200, left:-200, width:500, height:500, borderRadius:'50%', background:'radial-gradient(circle, rgba(0,100,180,0.12) 0%, transparent 65%)', pointerEvents:'none', zIndex:0 }} />
+      <div style={{ position:'fixed', inset:0, zIndex:0, pointerEvents:'none', backgroundImage:`linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px)`, backgroundSize:'60px 60px' }} />
+      <div style={{ position:'fixed', bottom:0, left:0, right:0, height:3, background:'#FFCB05', zIndex:100 }} />
+
+      <nav style={{ position:'fixed', top:0, left:0, right:0, zIndex:100, display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 2.5rem', height:56, background:'rgba(0,39,76,0.88)', backdropFilter:'blur(16px)', borderBottom:'1px solid rgba(255,255,255,0.06)' }}>
+        <div onClick={() => router.push('/')} style={{ fontFamily:'"Bebas Neue", sans-serif', fontSize:'1.35rem', letterSpacing:'0.1em', color:'#fff', cursor:'pointer', flexShrink:0 }}>
+          STUDY<span style={{ color:'#FFCB05' }}>ARENA</span>
+        </div>
+        <div style={{ display:'flex', alignItems:'center' }}>
+          {navItems.map(item => (
+            <div key={item.label} className="nav-link" onClick={() => router.push(item.href)}>{item.label}</div>
+          ))}
+        </div>
+        <div style={{ fontFamily:'"DM Mono", monospace', fontSize:'0.6rem', letterSpacing:'0.12em', textTransform:'uppercase', color:'rgba(255,255,255,0.3)', border:'1px solid rgba(255,255,255,0.08)', padding:'5px 12px', flexShrink:0, borderRadius:6 }}>
+          University of Michigan
+        </div>
+      </nav>
+
+      <section style={{ position:'relative', zIndex:1, minHeight:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', textAlign:'center', padding:'120px 2rem 6rem' }}>
+        <div className={mounted ? 'f1' : ''} style={{ display:'inline-flex', alignItems:'center', gap:8, fontFamily:'"DM Mono", monospace', fontSize:'0.66rem', letterSpacing:'0.18em', textTransform:'uppercase', color:'rgba(255,203,5,0.8)', marginBottom:'1.5rem', background:'rgba(255,203,5,0.08)', padding:'6px 16px', borderRadius:20, border:'1px solid rgba(255,203,5,0.15)' }}>
+          <div style={{ width:6, height:6, background:'#FFCB05', borderRadius:'50%', animation:'pulse 2s infinite' }} />
+          UMich Study Community
+        </div>
+        <h1 className={mounted ? 'f2' : ''} style={{ fontFamily:'"Bebas Neue", sans-serif', fontSize:'clamp(2.2rem, 5vw, 4rem)', fontWeight:400, lineHeight:1.1, letterSpacing:'0.03em', color:'#fff', marginBottom:'1.5rem', maxWidth:700 }}>
+          The academic network for students collaboration and{' '}
+          <span style={{ color:'#FFCB05' }}>competition.</span>
+        </h1>
+        <p className={mounted ? 'f3' : ''} style={{ fontSize:'1.05rem', color:'rgba(255,255,255,0.55)', lineHeight:1.7, maxWidth:400, margin:'0 auto', fontWeight:300 }}>
+          Join your classmates, share notes, and compete<br />
+          in real-time quiz competitions built from and for Michigan students.
+        </p>
+        <div className={mounted ? 'f4' : ''} style={{ width:'100%', maxWidth:420, margin:'2rem auto 0' }}>
+          <div style={{ display:'flex', borderRadius:10, overflow:'hidden', boxShadow: focused ? '0 0 0 2px rgba(255,203,5,0.4), 0 20px 40px rgba(0,0,0,0.3)' : '0 20px 40px rgba(0,0,0,0.25)', transition:'box-shadow 0.25s' }}>
+            <input type="text" placeholder={loading ? "Connecting..." : "Enter your name..."} value={name} onChange={e => setName(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleEnter()} onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} disabled={loading} style={{ flex:1, padding:'15px 20px', background:'rgba(255,255,255,0.07)', border:'none', color:'#fff', fontFamily:'"DM Sans", sans-serif', fontSize:15 }} />
+            <button className="cta-btn" onClick={handleEnter} disabled={!name.trim() || loading}>
+              {loading ? '...' : 'Enter →'}
+            </button>
           </div>
-          <h1 style={{ fontSize: 'clamp(2rem, 5vw, 3.5rem)', fontWeight: 900, color: '#fff', letterSpacing: '-0.01em', marginBottom: '1.25rem', lineHeight: 1.1, marginTop: '1rem' }}>
-            Built by UMich students,<br />for UMich students.
-          </h1>
-          <p style={{ fontSize: '1rem', color: 'rgba(255,255,255,0.5)', lineHeight: 1.8, maxWidth: 640, fontWeight: 300, marginBottom: '4rem' }}>
-            StudyArena is a study platform built specifically for the University of Michigan community. Upload your lecture notes, generate a quiz with AI, and challenge your classmates to a real-time battle — or use it to browse resources and discuss course material with peers.
+          <p style={{ marginTop:'0.75rem', fontFamily:'"DM Mono", monospace', fontSize:'0.62rem', letterSpacing:'0.08em', textTransform:'uppercase', color:'rgba(255,255,255,0.2)', textAlign:'center' }}>
+            No signup required · Works for any course
           </p>
         </div>
-
-        <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', marginBottom: '4rem' }} />
-
-        {/* MISSION */}
-        <div id="mission">
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: 8,
-            fontFamily: 'monospace', fontSize: '0.68rem', letterSpacing: '0.16em',
-            textTransform: 'uppercase', color: 'rgba(255,203,5,0.7)', marginBottom: '1rem',
-            background: 'rgba(255,203,5,0.08)', padding: '6px 14px', borderRadius: 20,
-          }}>
-            Our Mission
-          </div>
-          <h2 style={{ fontSize: 'clamp(1.5rem, 4vw, 2.5rem)', fontWeight: 900, color: '#fff', letterSpacing: '-0.01em', marginBottom: '1.25rem', marginTop: '1rem' }}>
-            Make studying less lonely.
-          </h2>
-          <p style={{ fontSize: '1rem', color: 'rgba(255,255,255,0.5)', lineHeight: 1.8, maxWidth: 640, fontWeight: 300, marginBottom: '4rem' }}>
-            Studying alone is inefficient and demotivating. We built StudyArena to turn studying into a social experience — where competing with your classmates makes you learn faster, and sharing your notes helps everyone in the class succeed together.
-          </p>
+        <div className={mounted ? 'f5' : ''} style={{ marginTop:'3rem', fontFamily:'"DM Mono", monospace', fontSize:'0.6rem', letterSpacing:'0.14em', textTransform:'uppercase', color:'rgba(255,255,255,0.18)' }}>
+          ↓ See how it works
         </div>
+      </section>
 
-        <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', marginBottom: '4rem' }} />
-
-        {/* HOW IT WORKS */}
-        <div id="how">
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: 8,
-            fontFamily: 'monospace', fontSize: '0.68rem', letterSpacing: '0.16em',
-            textTransform: 'uppercase', color: 'rgba(255,203,5,0.7)', marginBottom: '1rem',
-            background: 'rgba(255,203,5,0.08)', padding: '6px 14px', borderRadius: 20,
-          }}>
-            How it Works
-          </div>
-          <h2 style={{ fontSize: 'clamp(1.5rem, 4vw, 2.5rem)', fontWeight: 900, color: '#fff', letterSpacing: '-0.01em', marginBottom: '2.5rem', marginTop: '1rem' }}>
-            Three steps.
-          </h2>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
-            {[
-              { num: '01', title: 'Add your courses', desc: 'Search the UMich course catalog and add the classes you are enrolled in to your dashboard.' },
-              { num: '02', title: 'Upload material', desc: 'Drop in any PDF — lecture notes, past exams, study guides. AI generates quiz questions automatically.' },
-              { num: '03', title: 'Battle or browse', desc: 'Challenge classmates to a real-time quiz, or browse resources and discuss in the course community.' },
-            ].map(s => (
-              <div key={s.num}
-                style={{
-                  background: 'rgba(255,255,255,0.03)',
-                  border: '1px solid rgba(255,255,255,0.07)',
-                  borderRadius: 14,
-                  padding: '2rem 1.75rem',
-                  transition: 'background 0.2s, border-color 0.2s',
-                }}
-                onMouseEnter={e => {
-                  (e.currentTarget as HTMLDivElement).style.background = 'rgba(255,255,255,0.06)';
-                  (e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(255,203,5,0.2)';
-                }}
-                onMouseLeave={e => {
-                  (e.currentTarget as HTMLDivElement).style.background = 'rgba(255,255,255,0.03)';
-                  (e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(255,255,255,0.07)';
-                }}
-              >
-                <div style={{ fontSize: '3rem', fontWeight: 900, color: 'rgba(255,203,5,0.2)', lineHeight: 1, marginBottom: '1rem', fontFamily: 'monospace' }}>{s.num}</div>
-                <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#fff', marginBottom: '0.5rem' }}>{s.title}</div>
-                <div style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.4)', lineHeight: 1.65 }}>{s.desc}</div>
+      <section style={{ position:'relative', zIndex:1, padding:'5rem 2.5rem 8rem', borderTop:'1px solid rgba(255,255,255,0.05)', maxWidth:1100, margin:'0 auto' }}>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(260px, 1fr))', gap:'1.25rem' }}>
+          {features.map((f, i) => {
+            const Icon = f.icon;
+            return (
+              <div key={i} className="feature-card">
+                <div style={{ marginBottom:'1rem', width:46, height:46, background:'rgba(255,203,5,0.1)', borderRadius:10, display:'flex', alignItems:'center', justifyContent:'center' }}>
+                  <Icon size={20} color="#FFCB05" strokeWidth={1.5} />
+                </div>
+                <h3 style={{ fontSize:'1rem', fontWeight:700, marginBottom:'0.5rem', color:'#fff' }}>{f.title}</h3>
+                <p style={{ fontSize:'0.85rem', color:'rgba(255,255,255,0.4)', lineHeight:1.65, fontWeight:300 }}>{f.desc}</p>
               </div>
-            ))}
-          </div>
+            );
+          })}
         </div>
+      </section>
 
-        <button
-          onClick={() => router.push('/')}
-          style={{
-            marginTop: '4rem', background: 'none', border: '1px solid rgba(255,255,255,0.15)',
-            color: 'rgba(255,255,255,0.5)', padding: '0.75rem 1.5rem',
-            fontFamily: 'monospace', fontSize: '0.75rem', letterSpacing: '0.08em',
-            textTransform: 'uppercase', cursor: 'pointer', transition: 'all 0.2s',
-            borderRadius: 8,
-          }}
-          onMouseEnter={e => {
-            (e.currentTarget as HTMLButtonElement).style.borderColor = '#FFCB05';
-            (e.currentTarget as HTMLButtonElement).style.color = '#FFCB05';
-          }}
-          onMouseLeave={e => {
-            (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.15)';
-            (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.5)';
-          }}
-        >
-          ← Back to Home
-        </button>
-      </div>
+      <footer style={{ position:'relative', zIndex:1, padding:'1.75rem 2.5rem', display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:'1rem', borderTop:'1px solid rgba(255,255,255,0.04)' }}>
+        <div style={{ fontFamily:'"Bebas Neue", sans-serif', fontSize:'1rem', letterSpacing:'0.1em', color:'rgba(255,255,255,0.3)' }}>
+          STUDY<span style={{ color:'rgba(255,203,5,0.4)' }}>ARENA</span>
+        </div>
+        <div style={{ fontFamily:'"DM Mono", monospace', fontSize:'0.6rem', letterSpacing:'0.1em', textTransform:'uppercase', color:'rgba(255,255,255,0.15)' }}>
+          Built for Michigan Students · Go Blue
+        </div>
+      </footer>
     </div>
   );
 }
