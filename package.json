@@ -26,6 +26,7 @@
   "dependencies": {
     "@prisma/adapter-pg": "^7.5.0",
     "@prisma/client": "^5.22.0",
+    "lucide-react": "^0.577.0",
     "pg": "^8.20.0"
   }
 }
