@@ -12,7 +12,7 @@ model User {
   email          String        @unique
   passwordHash   String
   name           String
-  school         String        // e.g. "University of Michigan"
+  school         String
   schoolType     SchoolType    @default(COLLEGE)
   createdAt      DateTime      @default(now())
 
@@ -31,7 +31,7 @@ model Resource {
   title          String
   fileName       String
   fileUrl        String
-  extractedText  String   @db.Text   // the raw text pulled from the PDF
+  extractedText  String   @db.Text
   uploaderId     String
   uploader       User     @relation(fields: [uploaderId], references: [id])
   createdAt      DateTime @default(now())
@@ -55,31 +55,31 @@ model Question {
   quizId         String
   quiz           Quiz     @relation(fields: [quizId], references: [id])
   questionText   String
-  options        Json     // ["option A", "option B", "option C", "option D"]
+  options        Json     // stored as ["A", "B", "C", "D"]
   correctIndex   Int      // 0, 1, 2, or 3
-  difficulty     String   @default("medium") // easy, medium, hard
-  orderIndex     Int      // question number in the quiz
+  difficulty     String   @default("medium")
+  orderIndex     Int
 }
 
 model Room {
-  id             String       @id @default(uuid())
-  joinCode       String       @unique  // 6-character code players type in
-  quizId         String
-  quiz           Quiz         @relation(fields: [quizId], references: [id])
-  hostId         String
-  host           User         @relation("HostedRooms", fields: [hostId], references: [id])
-  status         RoomStatus   @default(WAITING)
-  maxPlayers     Int          @default(10)
-  timePerQuestion Int         @default(30)  // seconds
-  createdAt      DateTime     @default(now())
+  id              String       @id @default(uuid())
+  joinCode        String       @unique
+  quizId          String
+  quiz            Quiz         @relation(fields: [quizId], references: [id])
+  hostId          String
+  host            User         @relation("HostedRooms", fields: [hostId], references: [id])
+  status          RoomStatus   @default(WAITING)
+  maxPlayers      Int          @default(10)
+  timePerQuestion Int          @default(30)
+  createdAt       DateTime     @default(now())
 
-  playerScores   PlayerScore[]
+  playerScores    PlayerScore[]
 }
 
 enum RoomStatus {
-  WAITING    // lobby, players joining
-  ACTIVE     // quiz in progress
-  FINISHED   // quiz done, showing results
+  WAITING
+  ACTIVE
+  FINISHED
 }
 
 model PlayerScore {
@@ -92,5 +92,5 @@ model PlayerScore {
   correctAnswers Int      @default(0)
   totalAnswered  Int      @default(0)
 
-  @@unique([roomId, userId])  // one score entry per player per room
+  @@unique([roomId, userId])
 }
