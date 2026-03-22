@@ -3,9 +3,15 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
-type Step = 'name' | 'upload' | 'loading' | 'lobby';
+type Step = 'upload' | 'loading' | 'lobby';
 
-function Navbar({ name }: { name: string }) {
+interface BattleCourse {
+  code: string;
+  name: string;
+  id: string;
+}
+
+function Navbar({ name, courseCode }: { name: string; courseCode?: string }) {
   const router = useRouter();
   return (
     <nav style={{
@@ -14,12 +20,19 @@ function Navbar({ name }: { name: string }) {
       justifyContent: 'space-between', height: 56,
       position: 'sticky', top: 0, zIndex: 10,
     }}>
-      <div
-        onClick={() => router.push('/dashboard')}
-        style={{ fontWeight: 900, fontSize: 18, color: '#fff', letterSpacing: '0.02em', cursor: 'pointer' }}
-      >
-        STUDY<span style={{ color: '#FFCB05' }}>ARENA</span>
-        <span style={{ fontSize: 11, fontFamily: 'monospace', color: 'rgba(255,255,255,0.4)', marginLeft: 10 }}>UMICH</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div
+          onClick={() => router.push('/dashboard')}
+          style={{ fontWeight: 900, fontSize: 18, color: '#fff', cursor: 'pointer', letterSpacing: '0.02em' }}
+        >
+          STUDY<span style={{ color: '#FFCB05' }}>ARENA</span>
+        </div>
+        {courseCode && (
+          <>
+            <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 16 }}>/</span>
+            <span style={{ fontFamily: 'monospace', fontSize: 13, color: 'rgba(255,255,255,0.7)', letterSpacing: '0.06em' }}>{courseCode}</span>
+          </>
+        )}
       </div>
       {name && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -42,47 +55,43 @@ export default function CreateRoom() {
   const [name, setName] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [roomCode] = useState('XK7M2P');
+  const [course, setCourse] = useState<BattleCourse | null>(null);
+  const [topic, setTopic] = useState('');
 
   useEffect(() => {
-    const saved = localStorage.getItem('studentName');
-    if (saved) { setName(saved); setStep('upload'); }
-    else setStep('name');
+    const savedName = localStorage.getItem('studentName') || '';
+    setName(savedName);
+    const savedCourse = localStorage.getItem('battleCourse');
+    if (savedCourse) setCourse(JSON.parse(savedCourse));
+    const savedTopic = localStorage.getItem('battleTopic') || '';
+    setTopic(savedTopic);
   }, []);
-
-  if (step === 'name') {
-    return (
-      <>
-        <Navbar name="" />
-        <PageShell>
-          <Label>Step 1 of 2</Label>
-          <Title>What&apos;s your name?</Title>
-          <Sub>This is how other players will see you in the room.</Sub>
-          <input
-            type="text" placeholder="e.g. Kazim"
-            value={name} onChange={e => setName(e.target.value)}
-            onKeyDown={e => {
-              if (e.key === 'Enter' && name.trim()) {
-                localStorage.setItem('studentName', name.trim());
-                setStep('upload');
-              }
-            }}
-            style={inputStyle} autoFocus
-          />
-          <Button onClick={() => { localStorage.setItem('studentName', name.trim()); setStep('upload'); }} disabled={!name.trim()}>
-            Continue →
-          </Button>
-        </PageShell>
-      </>
-    );
-  }
 
   if (step === 'upload') {
     return (
       <>
-        <Navbar name={name} />
+        <Navbar name={name} courseCode={course?.code} />
         <PageShell>
           <Label>Create a Room</Label>
           <Title>Upload your material</Title>
+
+          {course && (
+            <div style={{
+              background: 'rgba(0,39,76,0.06)', border: '1px solid rgba(0,39,76,0.15)',
+              borderRadius: 8, padding: '0.75rem 1rem', marginBottom: 20, textAlign: 'left',
+            }}>
+              <div style={{ fontSize: 11, fontFamily: 'monospace', color: '#8a8880', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Course</div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: '#00274C' }}>{course.code}</div>
+              <div style={{ fontSize: 12, color: '#7a7870' }}>{course.name}</div>
+              {topic && (
+                <>
+                  <div style={{ fontSize: 11, fontFamily: 'monospace', color: '#8a8880', textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 10, marginBottom: 4 }}>Topic</div>
+                  <div style={{ fontSize: 13, color: '#2a2926' }}>{topic}</div>
+                </>
+              )}
+            </div>
+          )}
+
           <Sub>Drop in any PDF — lecture notes, past exams, study guides.</Sub>
           <label style={{
             display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -91,6 +100,7 @@ export default function CreateRoom() {
             border: `2px dashed ${file ? '#00274C' : 'rgba(0,39,76,0.2)'}`,
             background: file ? 'rgba(0,39,76,0.04)' : '#faf9f7',
             cursor: 'pointer', marginBottom: 16, transition: 'all 0.2s',
+            borderRadius: 8,
           }}>
             <input type="file" accept=".pdf" style={{ display: 'none' }} onChange={e => setFile(e.target.files?.[0] ?? null)} />
             {file ? (
@@ -110,7 +120,7 @@ export default function CreateRoom() {
           <Button onClick={() => { setStep('loading'); setTimeout(() => setStep('lobby'), 3000); }} disabled={!file}>
             Generate Quiz →
           </Button>
-          <BackButton onClick={() => router.push('/dashboard')} label="← Back to dashboard" />
+          <BackButton onClick={() => router.back()} label="← Back" />
         </PageShell>
       </>
     );
@@ -119,13 +129,13 @@ export default function CreateRoom() {
   if (step === 'loading') {
     return (
       <>
-        <Navbar name={name} />
+        <Navbar name={name} courseCode={course?.code} />
         <PageShell>
           <div style={{ fontSize: 36, marginBottom: 16 }}>⚙️</div>
           <Title>Generating your quiz...</Title>
           <Sub>Our AI is reading your material and writing questions. This takes about 10–15 seconds.</Sub>
-          <div style={{ width: '100%', height: 4, background: 'rgba(0,39,76,0.1)', overflow: 'hidden', marginTop: 8 }}>
-            <div style={{ height: '100%', background: '#00274C', animation: 'fill 3s linear forwards' }} />
+          <div style={{ width: '100%', height: 4, background: 'rgba(0,39,76,0.1)', overflow: 'hidden', marginTop: 8, borderRadius: 4 }}>
+            <div style={{ height: '100%', background: '#00274C', animation: 'fill 3s linear forwards', borderRadius: 4 }} />
           </div>
           <div style={{ marginTop: 16, fontFamily: 'monospace', fontSize: 12, color: '#8a8880', letterSpacing: '0.06em' }}>
             Reading PDF → Generating questions → Almost done...
@@ -138,15 +148,25 @@ export default function CreateRoom() {
 
   return (
     <>
-      <Navbar name={name} />
+      <Navbar name={name} courseCode={course?.code} />
       <PageShell wide>
         <Label>Room Created</Label>
         <Title>Your room is ready</Title>
         <Sub>Share the code below with your friends so they can join.</Sub>
 
+        {course && (
+          <div style={{
+            background: 'rgba(0,39,76,0.06)', border: '1px solid rgba(0,39,76,0.15)',
+            borderRadius: 8, padding: '0.75rem 1rem', marginBottom: 20, textAlign: 'left',
+          }}>
+            <div style={{ fontSize: 13, fontWeight: 800, color: '#00274C' }}>{course.code} · {course.name}</div>
+            {topic && <div style={{ fontSize: 12, color: '#7a7870', marginTop: 4 }}>Topic: {topic}</div>}
+          </div>
+        )}
+
         <div style={{
           background: '#00274C', padding: '1.5rem',
-          marginBottom: 20, textAlign: 'center', width: '100%',
+          marginBottom: 20, textAlign: 'center', width: '100%', borderRadius: 8,
         }}>
           <div style={{ fontSize: 11, fontFamily: 'monospace', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.5)', marginBottom: 8, textTransform: 'uppercase' }}>Room Code</div>
           <div style={{ fontSize: 48, fontFamily: 'monospace', fontWeight: 800, letterSpacing: '0.2em', color: '#FFCB05' }}>{roomCode}</div>
@@ -179,8 +199,9 @@ function PageShell({ children, wide }: { children: React.ReactNode; wide?: boole
         background: '#fff', border: '1px solid rgba(0,0,0,0.08)',
         padding: '3rem 2.5rem', width: '100%', maxWidth: wide ? 520 : 440,
         textAlign: 'center', boxShadow: '0 2px 40px rgba(0,0,0,0.06)', position: 'relative',
+        borderRadius: 12,
       }}>
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 4, background: '#00274C' }} />
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 4, background: '#00274C', borderRadius: '12px 12px 0 0' }} />
         {children}
       </div>
     </div>
@@ -208,6 +229,7 @@ function Button({ children, onClick, disabled }: { children: React.ReactNode; on
       fontFamily: 'monospace', fontSize: 13, fontWeight: 700,
       letterSpacing: '0.08em', textTransform: 'uppercase',
       cursor: disabled ? 'not-allowed' : 'pointer', marginTop: 8,
+      borderRadius: 8,
     }}>{children}</button>
   );
 }
@@ -227,7 +249,7 @@ function PlayerRow({ name, isHost }: { name: string; isHost?: boolean }) {
     <div style={{
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       padding: '10px 14px', background: '#f5f4f0',
-      border: '1px solid rgba(0,0,0,0.06)', marginBottom: 6,
+      border: '1px solid rgba(0,0,0,0.06)', marginBottom: 6, borderRadius: 8,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <div style={{
@@ -243,17 +265,9 @@ function PlayerRow({ name, isHost }: { name: string; isHost?: boolean }) {
           fontSize: 10, fontFamily: 'monospace', letterSpacing: '0.08em',
           textTransform: 'uppercase', background: 'rgba(0,39,76,0.08)',
           color: '#00274C', padding: '3px 8px', border: '1px solid rgba(0,39,76,0.2)',
-          fontWeight: 700,
+          fontWeight: 700, borderRadius: 4,
         }}>Host</span>
       )}
     </div>
   );
 }
-
-const inputStyle: React.CSSProperties = {
-  width: '100%', padding: '0.85rem 1rem',
-  border: '1px solid rgba(0,0,0,0.12)',
-  background: '#faf9f7', fontSize: 15,
-  color: '#1a1916', outline: 'none',
-  marginBottom: 8, fontFamily: 'inherit', textAlign: 'center',
-};

@@ -5,7 +5,13 @@ import { useRouter } from 'next/navigation';
 
 type Step = 'details' | 'lobby';
 
-function Navbar({ name }: { name: string }) {
+interface BattleCourse {
+  code: string;
+  name: string;
+  id: string;
+}
+
+function Navbar({ name, courseCode }: { name: string; courseCode?: string }) {
   const router = useRouter();
   return (
     <nav style={{
@@ -14,9 +20,16 @@ function Navbar({ name }: { name: string }) {
       justifyContent: 'space-between', height: 56,
       position: 'sticky', top: 0, zIndex: 10,
     }}>
-      <div onClick={() => router.push('/dashboard')} style={{ fontWeight: 900, fontSize: 18, color: '#fff', cursor: 'pointer' }}>
-        STUDY<span style={{ color: '#FFCB05' }}>ARENA</span>
-        <span style={{ fontSize: 11, fontFamily: 'monospace', color: 'rgba(255,255,255,0.4)', marginLeft: 10 }}>UMICH</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div onClick={() => router.push('/dashboard')} style={{ fontWeight: 900, fontSize: 18, color: '#fff', cursor: 'pointer' }}>
+          STUDY<span style={{ color: '#FFCB05' }}>ARENA</span>
+        </div>
+        {courseCode && (
+          <>
+            <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 16 }}>/</span>
+            <span style={{ fontFamily: 'monospace', fontSize: 13, color: 'rgba(255,255,255,0.7)', letterSpacing: '0.06em' }}>{courseCode}</span>
+          </>
+        )}
       </div>
       {name && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -39,10 +52,13 @@ export default function JoinRoom() {
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
   const [error, setError] = useState('');
+  const [course, setCourse] = useState<BattleCourse | null>(null);
 
   useEffect(() => {
     const saved = localStorage.getItem('studentName');
     if (saved) setName(saved);
+    const savedCourse = localStorage.getItem('battleCourse');
+    if (savedCourse) setCourse(JSON.parse(savedCourse));
   }, []);
 
   function handleJoin() {
@@ -56,10 +72,22 @@ export default function JoinRoom() {
   if (step === 'details') {
     return (
       <>
-        <Navbar name={name} />
+        <Navbar name={name} courseCode={course?.code} />
         <PageShell>
           <Label>Join a Room</Label>
           <Title>Enter your details</Title>
+
+          {course && (
+            <div style={{
+              background: 'rgba(0,39,76,0.06)', border: '1px solid rgba(0,39,76,0.15)',
+              borderRadius: 8, padding: '0.75rem 1rem', marginBottom: 20, textAlign: 'left',
+            }}>
+              <div style={{ fontSize: 11, fontFamily: 'monospace', color: '#8a8880', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Course</div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: '#00274C' }}>{course.code}</div>
+              <div style={{ fontSize: 12, color: '#7a7870' }}>{course.name}</div>
+            </div>
+          )}
+
           <Sub>Type in your name and the room code from your host.</Sub>
 
           <FieldLabel>Your name</FieldLabel>
@@ -80,7 +108,7 @@ export default function JoinRoom() {
           <Button onClick={handleJoin} disabled={!name.trim() || code.length !== 6}>
             Join Room →
           </Button>
-          <BackButton onClick={() => router.push('/dashboard')} />
+          <BackButton onClick={() => router.back()} />
         </PageShell>
       </>
     );
@@ -88,15 +116,24 @@ export default function JoinRoom() {
 
   return (
     <>
-      <Navbar name={name} />
+      <Navbar name={name} courseCode={course?.code} />
       <PageShell>
         <Label>Waiting for host</Label>
         <Title>You&apos;re in!</Title>
         <Sub>The host will start the game when everyone is ready.</Sub>
 
+        {course && (
+          <div style={{
+            background: 'rgba(0,39,76,0.06)', border: '1px solid rgba(0,39,76,0.15)',
+            borderRadius: 8, padding: '0.75rem 1rem', marginBottom: 20, textAlign: 'left',
+          }}>
+            <div style={{ fontSize: 13, fontWeight: 800, color: '#00274C' }}>{course.code} · {course.name}</div>
+          </div>
+        )}
+
         <div style={{
           background: '#00274C', padding: '1.25rem',
-          marginBottom: 20, textAlign: 'center', width: '100%',
+          marginBottom: 20, textAlign: 'center', width: '100%', borderRadius: 8,
         }}>
           <div style={{ fontSize: 11, fontFamily: 'monospace', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.5)', marginBottom: 6, textTransform: 'uppercase' }}>Room Code</div>
           <div style={{ fontSize: 36, fontFamily: 'monospace', fontWeight: 800, letterSpacing: '0.2em', color: '#FFCB05' }}>{code}</div>
@@ -114,6 +151,7 @@ export default function JoinRoom() {
           background: 'rgba(0,39,76,0.06)', border: '1px solid rgba(0,39,76,0.15)',
           fontFamily: 'monospace', fontSize: 12, color: '#00274C',
           letterSpacing: '0.06em', textAlign: 'center', fontWeight: 600,
+          borderRadius: 8,
         }}>
           ⏳ Waiting for host to start...
         </div>
@@ -135,8 +173,9 @@ function PageShell({ children }: { children: React.ReactNode }) {
         background: '#fff', border: '1px solid rgba(0,0,0,0.08)',
         padding: '3rem 2.5rem', width: '100%', maxWidth: 440,
         textAlign: 'center', boxShadow: '0 2px 40px rgba(0,0,0,0.06)', position: 'relative',
+        borderRadius: 12,
       }}>
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 4, background: '#00274C' }} />
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 4, background: '#00274C', borderRadius: '12px 12px 0 0' }} />
         {children}
       </div>
     </div>
@@ -168,6 +207,7 @@ function Button({ children, onClick, disabled }: { children: React.ReactNode; on
       fontFamily: 'monospace', fontSize: 13, fontWeight: 700,
       letterSpacing: '0.08em', textTransform: 'uppercase',
       cursor: disabled ? 'not-allowed' : 'pointer', marginTop: 8,
+      borderRadius: 8,
     }}>{children}</button>
   );
 }
@@ -178,7 +218,7 @@ function BackButton({ onClick }: { onClick: () => void }) {
       background: 'none', border: 'none', color: '#8a8880',
       fontSize: 13, fontFamily: 'monospace', cursor: 'pointer',
       marginTop: 12, letterSpacing: '0.05em',
-    }}>← Back to dashboard</button>
+    }}>← Back</button>
   );
 }
 
@@ -187,7 +227,7 @@ function PlayerRow({ name, isHost }: { name: string; isHost?: boolean }) {
     <div style={{
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       padding: '10px 14px', background: '#f5f4f0',
-      border: '1px solid rgba(0,0,0,0.06)', marginBottom: 6,
+      border: '1px solid rgba(0,0,0,0.06)', marginBottom: 6, borderRadius: 8,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <div style={{
@@ -202,7 +242,8 @@ function PlayerRow({ name, isHost }: { name: string; isHost?: boolean }) {
         <span style={{
           fontSize: 10, fontFamily: 'monospace', letterSpacing: '0.08em',
           textTransform: 'uppercase', background: 'rgba(0,39,76,0.08)',
-          color: '#00274C', padding: '3px 8px', border: '1px solid rgba(0,39,76,0.2)', fontWeight: 700,
+          color: '#00274C', padding: '3px 8px', border: '1px solid rgba(0,39,76,0.2)',
+          fontWeight: 700, borderRadius: 4,
         }}>Host</span>
       )}
     </div>
@@ -215,4 +256,5 @@ const inputStyle: React.CSSProperties = {
   background: '#faf9f7', fontSize: 15,
   color: '#1a1916', outline: 'none',
   marginBottom: 16, fontFamily: 'inherit',
+  borderRadius: 8,
 };
