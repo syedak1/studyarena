@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 
 export default function Home() {
   const [name, setName] = useState('');
+  const [focused, setFocused] = useState(false);
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const router = useRouter();
 
   function handleEnter() {
@@ -13,94 +15,219 @@ export default function Home() {
     router.push('/dashboard');
   }
 
-  return (
-    <div style={{
-      minHeight: '100vh', background: '#fafaf8',
-      display: 'flex', flexDirection: 'column',
-      alignItems: 'center', justifyContent: 'center',
-      padding: '2rem 1rem',
-      backgroundImage: 'linear-gradient(rgba(0,39,76,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0,39,76,0.03) 1px, transparent 1px)',
-      backgroundSize: '36px 36px',
-    }}>
+  const navItems = [
+    {
+      label: 'About',
+      items: [
+        { title: 'What is StudyArena?', sub: 'Overview of the platform', href: '/about' },
+        { title: 'Our Mission', sub: 'Why we built this', href: '/about#mission' },
+        { title: 'How it Works', sub: 'The 3-step flow', href: '/about#how' },
+      ],
+    },
+    {
+      label: 'Team',
+      items: [
+        { title: 'Kazim Abbas', sub: 'UMich-Dearborn CS + Math', href: '/team' },
+        { title: 'Syed Sajjad Akbari', sub: 'Backend · UMich CS', href: '/team' },
+        { title: 'Zein El-Khatib', sub: 'AI Pipeline · WSU Robotics', href: '/team' },
+      ],
+    },
+    {
+      label: 'Features',
+      items: [
+        { title: 'Quiz Battles', sub: 'Real-time multiplayer', href: '/features' },
+        { title: 'AI Generation', sub: 'Upload any PDF', href: '/features#ai' },
+        { title: 'Course Community', sub: 'Notes + discussion', href: '/features#community' },
+      ],
+    },
+  ];
 
-      <div style={{
-        position: 'relative', zIndex: 1,
-        background: '#fff', border: '1px solid rgba(0,0,0,0.08)',
-        padding: '3.5rem 3rem 3rem', width: '100%', maxWidth: 440,
-        textAlign: 'center', boxShadow: '0 2px 40px rgba(0,0,0,0.06)',
+  return (
+    <div style={{ background: '#00274C', minHeight: '100vh', fontFamily: 'sans-serif', color: '#fff', position: 'relative', overflowX: 'hidden' }}>
+
+      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, height: 3, background: '#FFCB05', zIndex: 100 }} />
+
+      {/* NAVBAR */}
+      <nav style={{
+        position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '0 2.5rem', height: 56,
+        background: 'rgba(0,39,76,0.92)',
+        backdropFilter: 'blur(12px)',
+        borderBottom: '1px solid rgba(255,255,255,0.06)',
       }}>
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: '#00274C' }} />
+        <div
+          onClick={() => router.push('/')}
+          style={{ fontWeight: 900, fontSize: '1.1rem', color: '#fff', letterSpacing: '0.04em', cursor: 'pointer', flexShrink: 0 }}
+        >
+          STUDY<span style={{ color: '#FFCB05' }}>ARENA</span>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          {navItems.map(item => (
+            <div
+              key={item.label}
+              style={{ position: 'relative' }}
+              onMouseEnter={() => setOpenDropdown(item.label)}
+              onMouseLeave={() => setOpenDropdown(null)}
+            >
+              <div style={{
+                padding: '0 1rem', height: 56,
+                display: 'flex', alignItems: 'center', gap: 4,
+                fontSize: 13,
+                color: openDropdown === item.label ? '#fff' : 'rgba(255,255,255,0.6)',
+                cursor: 'pointer', transition: 'color 0.15s', userSelect: 'none',
+              }}>
+                {item.label}
+                <span style={{
+                  fontSize: 9, color: 'rgba(255,255,255,0.3)',
+                  transform: openDropdown === item.label ? 'rotate(180deg)' : 'none',
+                  transition: 'transform 0.2s', display: 'inline-block',
+                }}>▼</span>
+              </div>
+
+              <div style={{
+                position: 'absolute', top: 56, left: 0,
+                minWidth: 220, background: '#001e3c',
+                border: '1px solid rgba(255,255,255,0.08)',
+                borderTop: '2px solid #FFCB05',
+                borderRadius: '0 0 12px 12px',
+                overflow: 'hidden',
+                opacity: openDropdown === item.label ? 1 : 0,
+                pointerEvents: openDropdown === item.label ? 'all' : 'none',
+                transform: openDropdown === item.label ? 'translateY(0)' : 'translateY(-6px)',
+                transition: 'all 0.18s ease',
+              }}>
+                {item.items.map((d, i) => (
+                  <div
+                    key={i}
+                    onClick={() => router.push(d.href)}
+                    style={{
+                      padding: '0.75rem 1.25rem', fontSize: 13,
+                      color: 'rgba(255,255,255,0.6)', cursor: 'pointer',
+                      transition: 'all 0.15s',
+                      borderBottom: i < item.items.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
+                    }}
+                    onMouseEnter={e => {
+                      (e.currentTarget as HTMLDivElement).style.background = 'rgba(255,203,5,0.06)';
+                      (e.currentTarget as HTMLDivElement).style.color = '#fff';
+                    }}
+                    onMouseLeave={e => {
+                      (e.currentTarget as HTMLDivElement).style.background = 'transparent';
+                      (e.currentTarget as HTMLDivElement).style.color = 'rgba(255,255,255,0.6)';
+                    }}
+                  >
+                    <div style={{ fontWeight: 600, marginBottom: 2 }}>{d.title}</div>
+                    <div style={{ fontSize: 11, fontFamily: 'monospace', color: 'rgba(255,255,255,0.3)', letterSpacing: '0.04em' }}>{d.sub}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
 
         <div style={{
-          display: 'inline-flex', alignItems: 'center', gap: 6,
-          border: '1px solid rgba(0,39,76,0.2)', background: 'rgba(0,39,76,0.05)',
-          color: '#00274C', fontFamily: 'monospace', fontSize: 11,
-          letterSpacing: '0.12em', padding: '4px 10px',
-          textTransform: 'uppercase', marginBottom: '1.75rem',
+          fontFamily: 'monospace', fontSize: '0.62rem',
+          letterSpacing: '0.12em', textTransform: 'uppercase',
+          color: 'rgba(255,255,255,0.3)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          padding: '4px 10px', flexShrink: 0,
+          borderRadius: 6,
         }}>
-          <div style={{ width: 5, height: 5, background: '#FFCB05', borderRadius: '50%' }} />
+          University of Michigan
+        </div>
+      </nav>
+
+      {/* HERO */}
+      <section style={{
+        position: 'relative', zIndex: 1, minHeight: '100vh',
+        display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center',
+        textAlign: 'center', padding: '100px 2rem 5rem',
+      }}>
+        <div style={{
+          display: 'inline-flex', alignItems: 'center', gap: 8,
+          fontFamily: 'monospace', fontSize: '0.68rem',
+          letterSpacing: '0.16em', textTransform: 'uppercase',
+          color: 'rgba(255,203,5,0.7)', marginBottom: '1.75rem',
+          background: 'rgba(255,203,5,0.08)',
+          padding: '6px 14px',
+          borderRadius: 20,
+        }}>
+          <div style={{ width: 6, height: 6, background: '#FFCB05', borderRadius: '50%', animation: 'pulse 2s infinite' }} />
           UMich Study Community
         </div>
 
-        <div style={{ fontSize: '3.5rem', fontWeight: 900, lineHeight: 0.9, letterSpacing: '0.02em', marginBottom: '0.75rem', color: '#00274C' }}>
-          STUDY<br />
-          <span style={{ color: '#FFCB05', WebkitTextStroke: '1px #c8a000' }}>ARENA</span>
-        </div>
+        <h1 style={{
+          fontSize: 'clamp(3.2rem, 9vw, 6.5rem)', fontWeight: 900,
+          lineHeight: 1, letterSpacing: '-0.02em', color: '#fff', marginBottom: '1.25rem',
+        }}>
+          Study.<br />
+          <span style={{ color: '#FFCB05' }}>Compete.</span><br />
+          Win.
+        </h1>
 
-        <p style={{ fontSize: 14, color: '#7a7870', lineHeight: 1.75, marginBottom: '2rem', fontWeight: 300 }}>
-          Study with your classmates.<br />
-          Compete, share notes, and discuss — all in one place.
+        <p style={{
+          fontSize: '1rem', color: 'rgba(255,255,255,0.45)',
+          lineHeight: 1.75, maxWidth: 360,
+          margin: '0 auto 2.5rem', fontWeight: 300,
+        }}>
+          Join your classmates, share notes,<br />
+          and battle it out in real-time quiz rooms.
         </p>
 
-        <div style={{ width: '100%', height: 1, background: 'rgba(0,0,0,0.06)', marginBottom: '1.75rem' }} />
-
-        <div style={{ fontSize: 12, fontFamily: 'monospace', color: '#00274C', letterSpacing: '0.06em', textAlign: 'left', marginBottom: 8, textTransform: 'uppercase' }}>
-          Your name
+        <div style={{ display: 'flex', width: '100%', maxWidth: 380, margin: '0 auto 1rem', borderRadius: 10, overflow: 'hidden' }}>
+          <input
+            type="text"
+            placeholder="Enter your name..."
+            value={name}
+            onChange={e => setName(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleEnter()}
+            onFocus={() => setFocused(true)}
+            onBlur={() => setFocused(false)}
+            autoFocus
+            style={{
+              flex: 1, padding: '14px 18px',
+              background: 'rgba(255,255,255,0.06)',
+              borderTop: focused ? '1px solid rgba(255,203,5,0.6)' : '1px solid rgba(255,255,255,0.12)',
+              borderBottom: focused ? '1px solid rgba(255,203,5,0.6)' : '1px solid rgba(255,255,255,0.12)',
+              borderLeft: focused ? '1px solid rgba(255,203,5,0.6)' : '1px solid rgba(255,255,255,0.12)',
+              borderRight: 'none', color: '#fff',
+              fontFamily: 'inherit', fontSize: 15, outline: 'none',
+              transition: 'border-color 0.2s',
+            }}
+          />
+          <button
+            onClick={handleEnter}
+            disabled={!name.trim()}
+            style={{
+              padding: '14px 22px',
+              background: name.trim() ? '#FFCB05' : 'rgba(255,255,255,0.06)',
+              border: 'none',
+              color: name.trim() ? '#00274C' : 'rgba(255,255,255,0.2)',
+              fontFamily: 'monospace', fontSize: '0.75rem',
+              fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
+              cursor: name.trim() ? 'pointer' : 'not-allowed',
+              transition: 'all 0.2s', whiteSpace: 'nowrap',
+            }}
+          >
+            Enter →
+          </button>
         </div>
-        <input
-          type="text"
-          placeholder="e.g. Kazim"
-          value={name}
-          onChange={e => setName(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && handleEnter()}
-          autoFocus
-          style={{
-            width: '100%', padding: '0.85rem 1rem',
-            border: '1px solid rgba(0,0,0,0.12)',
-            background: '#faf9f7', fontSize: 15,
-            color: '#1a1916', outline: 'none',
-            marginBottom: 12, fontFamily: 'inherit',
-          }}
-        />
 
-        <button
-          onClick={handleEnter}
-          disabled={!name.trim()}
-          style={{
-            width: '100%', padding: '0.85rem',
-            background: name.trim() ? '#00274C' : '#e0ddd8',
-            border: 'none', color: name.trim() ? '#FFCB05' : '#aaa',
-            fontFamily: 'monospace', fontSize: 13,
-            letterSpacing: '0.08em', textTransform: 'uppercase',
-            cursor: name.trim() ? 'pointer' : 'not-allowed',
-            fontWeight: 700, transition: 'background 0.2s',
-          }}
-        >
-          Enter →
-        </button>
-
-        <p style={{ fontFamily: 'monospace', fontSize: 11, color: '#8a8880', marginTop: 16, letterSpacing: '0.05em' }}>
-          No account needed. Just your name.
+        <p style={{
+          fontFamily: 'monospace', fontSize: '0.63rem',
+          letterSpacing: '0.08em', textTransform: 'uppercase',
+          color: 'rgba(255,255,255,0.18)',
+        }}>
+          No signup required &nbsp;·&nbsp; Works for any course
         </p>
-      </div>
+      </section>
 
-      <div style={{
-        position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)',
-        fontFamily: 'monospace', fontSize: 11, color: 'rgba(0,39,76,0.25)',
-        letterSpacing: '0.1em', textTransform: 'uppercase', whiteSpace: 'nowrap', zIndex: 1,
-      }}>
-        StudyArena · University of Michigan
-      </div>
+      <style>{`
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.2} }
+        input::placeholder { color: rgba(255,255,255,0.22); }
+      `}</style>
     </div>
   );
 }

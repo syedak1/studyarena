@@ -32,10 +32,16 @@ function Navbar({ name }: { name: string }) {
   const router = useRouter();
   return (
     <nav style={{
-      background: '#00274C', borderBottom: '3px solid #FFCB05',
-      padding: '0 2rem', display: 'flex', alignItems: 'center',
-      justifyContent: 'space-between', height: 56,
-      position: 'sticky', top: 0, zIndex: 10,
+      background: '#00274C',
+      borderBottom: '3px solid #FFCB05',
+      padding: '0 2rem',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      height: 56,
+      position: 'sticky',
+      top: 0,
+      zIndex: 10,
     }}>
       <div
         onClick={() => router.push('/dashboard')}
@@ -89,28 +95,49 @@ export default function Dashboard() {
     <div style={{ minHeight: '100vh', background: '#f5f4f0', fontFamily: 'sans-serif' }}>
       <Navbar name={name} />
 
-      <div style={{ maxWidth: 920, margin: '0 auto', padding: '2rem 1.5rem' }}>
-
-        {/* Header */}
-        <div style={{ marginBottom: '2rem' }}>
-          <h1 style={{ fontSize: '1.6rem', fontWeight: 800, color: '#00274C', marginBottom: 4 }}>
+      {/* Hero banner */}
+      <div style={{
+        background: 'linear-gradient(135deg, #00274C 0%, #003a6e 100%)',
+        borderBottom: '4px solid #FFCB05',
+        padding: '2rem 2rem 1.75rem',
+      }}>
+        <div style={{ maxWidth: 920, margin: '0 auto' }}>
+          <h1 style={{ fontSize: '1.7rem', fontWeight: 800, color: '#fff', marginBottom: 6 }}>
             Welcome back, {name} 👋
           </h1>
-          <p style={{ fontSize: 14, color: '#7a7870' }}>
-            University of Michigan · {myCourses.length} course{myCourses.length !== 1 ? 's' : ''} enrolled
-          </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+            <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.65)', margin: 0 }}>
+              University of Michigan
+            </p>
+            <span style={{
+              background: '#FFCB05',
+              color: '#00274C',
+              fontSize: 11,
+              fontFamily: 'monospace',
+              fontWeight: 800,
+              letterSpacing: '0.07em',
+              padding: '3px 10px',
+              borderRadius: 20,
+            }}>
+              {myCourses.length} COURSE{myCourses.length !== 1 ? 'S' : ''} ENROLLED
+            </span>
+          </div>
         </div>
+      </div>
+
+      <div style={{ maxWidth: 920, margin: '0 auto', padding: '2rem 1.5rem' }}>
 
         {/* Tabs */}
-        <div style={{ display: 'flex', borderBottom: '1px solid rgba(0,0,0,0.08)', marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', borderBottom: '2px solid rgba(0,0,0,0.08)', marginBottom: '1.5rem' }}>
           {(['my', 'catalog'] as const).map(tab => (
             <button key={tab} onClick={() => setActiveTab(tab)} style={{
               background: 'none', border: 'none', cursor: 'pointer',
               padding: '0.75rem 1.25rem', fontSize: 13, fontFamily: 'monospace',
               letterSpacing: '0.06em', textTransform: 'uppercase',
               color: activeTab === tab ? '#00274C' : '#8a8880',
-              borderBottom: activeTab === tab ? '2px solid #FFCB05' : '2px solid transparent',
-              marginBottom: -1, fontWeight: activeTab === tab ? 700 : 400,
+              borderBottom: activeTab === tab ? '3px solid #FFCB05' : '3px solid transparent',
+              marginBottom: -2, fontWeight: activeTab === tab ? 700 : 400,
+              transition: 'color 0.15s',
             }}>
               {tab === 'my' ? `My Courses (${myCourses.length})` : 'Course Catalog'}
             </button>
@@ -122,7 +149,9 @@ export default function Dashboard() {
           myCourses.length === 0 ? (
             <div style={{
               textAlign: 'center', padding: '4rem 2rem',
-              border: '2px dashed rgba(0,39,76,0.15)', background: '#fff',
+              border: '2px dashed rgba(0,39,76,0.18)',
+              background: '#fff',
+              borderRadius: 14,
             }}>
               <div style={{ fontSize: 32, marginBottom: 12 }}>📚</div>
               <div style={{ fontSize: 16, fontWeight: 700, color: '#00274C', marginBottom: 8 }}>No courses yet</div>
@@ -134,6 +163,7 @@ export default function Dashboard() {
                 padding: '0.7rem 1.5rem', fontFamily: 'monospace',
                 fontSize: 12, letterSpacing: '0.08em',
                 textTransform: 'uppercase', cursor: 'pointer', fontWeight: 700,
+                borderRadius: 8,
               }}>Browse Catalog →</button>
             </div>
           ) : (
@@ -143,33 +173,51 @@ export default function Dashboard() {
                   key={course.id}
                   onClick={() => router.push(`/course/${course.id}`)}
                   style={{
-                    background: '#fff', border: '1px solid rgba(0,0,0,0.08)',
-                    padding: '1.5rem', cursor: 'pointer',
+                    background: '#fff',
+                    border: '1px solid rgba(0,0,0,0.08)',
+                    borderRadius: 14,
+                    padding: '1.5rem',
+                    cursor: 'pointer',
                     transition: 'transform 0.15s, box-shadow 0.15s',
-                    position: 'relative', overflow: 'hidden',
-                    display: 'flex', flexDirection: 'column',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    display: 'flex',
+                    flexDirection: 'column',
                   }}
                   onMouseEnter={e => {
                     (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-3px)';
-                    (e.currentTarget as HTMLDivElement).style.boxShadow = '0 8px 24px rgba(0,39,76,0.12)';
+                    (e.currentTarget as HTMLDivElement).style.boxShadow = '0 8px 28px rgba(0,39,76,0.13)';
                   }}
                   onMouseLeave={e => {
                     (e.currentTarget as HTMLDivElement).style.transform = 'translateY(0)';
                     (e.currentTarget as HTMLDivElement).style.boxShadow = 'none';
                   }}
                 >
-                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 4, background: categoryColors[course.category] || '#00274C' }} />
+                  {/* Top accent bar */}
+                  <div style={{
+                    position: 'absolute', top: 0, left: 0, right: 0, height: 5,
+                    background: categoryColors[course.category] || '#00274C',
+                    borderRadius: '14px 14px 0 0',
+                  }} />
+
+                  {/* Category badge — now maize */}
                   <div style={{
                     display: 'inline-block', fontSize: 10, fontFamily: 'monospace',
                     letterSpacing: '0.08em', textTransform: 'uppercase',
-                    background: 'rgba(0,39,76,0.07)', color: '#00274C',
-                    padding: '3px 8px', marginBottom: 10, fontWeight: 700,
+                    background: '#FFCB05', color: '#00274C',
+                    padding: '3px 9px', marginBottom: 10, fontWeight: 800,
+                    borderRadius: 6,
                   }}>{course.category}</div>
+
                   <div style={{ fontSize: 20, fontWeight: 800, color: '#00274C', marginBottom: 4 }}>{course.code}</div>
                   <div style={{ fontSize: 13, color: '#7a7870', marginBottom: 16, lineHeight: 1.4 }}>{course.name}</div>
+
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto' }}>
-                    <div style={{ fontSize: 11, fontFamily: 'monospace', color: '#8a8880' }}>
-                      {course.credits} credits · Click to enter →
+                    <div style={{
+                      fontSize: 11, fontFamily: 'monospace', color: '#fff',
+                      background: '#00274C', padding: '3px 9px', borderRadius: 6,
+                    }}>
+                      {course.credits} cr · enter →
                     </div>
                     <button
                       onClick={e => { e.stopPropagation(); toggleEnroll(course.id); }}
@@ -199,26 +247,37 @@ export default function Dashboard() {
               onChange={e => setSearch(e.target.value)}
               style={{
                 width: '100%', padding: '0.85rem 1rem',
-                border: '1px solid rgba(0,0,0,0.12)',
+                border: '2px solid rgba(0,39,76,0.15)',
                 background: '#fff', fontSize: 14, color: '#1a1916',
                 outline: 'none', marginBottom: '1rem',
                 fontFamily: 'inherit', boxSizing: 'border-box',
+                borderRadius: 10,
+                transition: 'border-color 0.15s',
               }}
+              onFocus={e => (e.currentTarget.style.borderColor = '#FFCB05')}
+              onBlur={e => (e.currentTarget.style.borderColor = 'rgba(0,39,76,0.15)')}
             />
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               {filtered.map(course => (
                 <div key={course.id} style={{
-                  background: '#fff', border: '1px solid rgba(0,0,0,0.08)',
+                  background: '#fff',
+                  border: '1px solid rgba(0,0,0,0.08)',
+                  borderRadius: 10,
                   padding: '1rem 1.25rem',
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                }}>
+                  transition: 'border-color 0.15s',
+                }}
+                  onMouseEnter={e => (e.currentTarget.style.borderColor = 'rgba(0,39,76,0.25)')}
+                  onMouseLeave={e => (e.currentTarget.style.borderColor = 'rgba(0,0,0,0.08)')}
+                >
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 2 }}>
                       <span style={{ fontSize: 15, fontWeight: 800, color: '#00274C' }}>{course.code}</span>
                       <span style={{
                         fontSize: 10, fontFamily: 'monospace', letterSpacing: '0.06em',
-                        textTransform: 'uppercase', background: 'rgba(0,39,76,0.07)',
-                        color: '#00274C', padding: '2px 6px', fontWeight: 700,
+                        textTransform: 'uppercase', background: '#FFCB05',
+                        color: '#00274C', padding: '2px 7px', fontWeight: 800,
+                        borderRadius: 5,
                       }}>{course.category}</span>
                     </div>
                     <div style={{ fontSize: 13, color: '#7a7870' }}>{course.name} · {course.credits} credits</div>
@@ -226,14 +285,15 @@ export default function Dashboard() {
                   <button
                     onClick={() => toggleEnroll(course.id)}
                     style={{
-                      padding: '0.5rem 1rem', border: '1px solid',
+                      padding: '0.5rem 1rem',
+                      border: enrolled.includes(course.id) ? 'none' : '1.5px solid rgba(0,39,76,0.25)',
                       fontFamily: 'monospace', fontSize: 11,
                       letterSpacing: '0.06em', textTransform: 'uppercase',
                       cursor: 'pointer', transition: 'all 0.15s', flexShrink: 0,
-                      background: enrolled.includes(course.id) ? '#00274C' : 'transparent',
-                      borderColor: enrolled.includes(course.id) ? '#00274C' : 'rgba(0,0,0,0.15)',
-                      color: enrolled.includes(course.id) ? '#FFCB05' : '#00274C',
-                      fontWeight: 700,
+                      background: enrolled.includes(course.id) ? '#FFCB05' : 'transparent',
+                      color: '#00274C',
+                      fontWeight: 800,
+                      borderRadius: 7,
                     }}
                   >
                     {enrolled.includes(course.id) ? '✓ Added' : '+ Add'}
