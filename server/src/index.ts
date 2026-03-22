@@ -14,8 +14,8 @@ import quizRoutes from "./routes/quizzes";
 import roomRoutes from "./routes/rooms";
 
 // ─── Socket handler ───
-// Uncomment after you build handler.ts (Phase 3):
-// import { registerSocketHandlers } from "./socket/handler";
+
+import { registerSocketHandlers } from "./socket/handler";
 
 console.log("Starting server...");
 
@@ -50,7 +50,7 @@ app.get("/api/health", (req, res) => {
 });
 
 // ─── Uncomment after handler.ts is built ───
-// registerSocketHandlers(io);
+ registerSocketHandlers(io);
 
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
