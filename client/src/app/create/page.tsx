@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { uploadResource, generateQuiz, createRoom } from '../../lib/api';
+import { getSocket } from '../../lib/socket';
 
 type Step = 'upload' | 'loading' | 'lobby';
 
@@ -11,7 +13,13 @@ interface BattleCourse {
   id: string;
 }
 
-function Navbar({ name, courseCode }: { name: string; courseCode?: string }) {
+interface PlayerInfo {
+  id: string;
+  name: string;
+  isHost: boolean;
+}
+
+function NavbarCreate({ name, courseCode }: { name: string; courseCode?: string }) {
   const router = useRouter();
   return (
     <nav style={{
@@ -21,10 +29,7 @@ function Navbar({ name, courseCode }: { name: string; courseCode?: string }) {
       position: 'sticky', top: 0, zIndex: 10,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <div
-          onClick={() => router.push('/dashboard')}
-          style={{ fontWeight: 900, fontSize: 18, color: '#fff', cursor: 'pointer', letterSpacing: '0.02em' }}
-        >
+        <div onClick={() => router.push('/dashboard')} style={{ fontWeight: 900, fontSize: 18, color: '#fff', cursor: 'pointer', letterSpacing: '0.02em' }}>
           STUDY<span style={{ color: '#FFCB05' }}>ARENA</span>
         </div>
         {courseCode && (
@@ -36,12 +41,7 @@ function Navbar({ name, courseCode }: { name: string; courseCode?: string }) {
       </div>
       {name && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{
-            width: 32, height: 32, borderRadius: '50%',
-            background: '#FFCB05', color: '#00274C',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 13, fontWeight: 800,
-          }}>{name[0]?.toUpperCase()}</div>
+          <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#FFCB05', color: '#00274C', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800 }}>{name[0]?.toUpperCase()}</div>
           <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.85)' }}>{name}</span>
         </div>
       )}
@@ -49,14 +49,18 @@ function Navbar({ name, courseCode }: { name: string; courseCode?: string }) {
   );
 }
 
-export default function CreateRoom() {
+export default function CreateRoomPage() {
   const router = useRouter();
   const [step, setStep] = useState<Step>('upload');
   const [name, setName] = useState('');
   const [file, setFile] = useState<File | null>(null);
-  const [roomCode] = useState('XK7M2P');
+  const [roomCode, setRoomCode] = useState('');
+  const [roomId, setRoomId] = useState('');
   const [course, setCourse] = useState<BattleCourse | null>(null);
   const [topic, setTopic] = useState('');
+  const [players, setPlayers] = useState<PlayerInfo[]>([]);
+  const [error, setError] = useState('');
+  const [loadingMsg, setLoadingMsg] = useState('Reading PDF...');
 
   useEffect(() => {
     const savedName = localStorage.getItem('studentName') || '';
@@ -67,19 +71,73 @@ export default function CreateRoom() {
     setTopic(savedTopic);
   }, []);
 
+  async function handleGenerate() {
+    if (!file) return;
+    setStep('loading');
+    setError('');
+
+    try {
+      // Step 1: Upload PDF
+      setLoadingMsg('Uploading PDF...');
+      const resource = await uploadResource(file, topic || file.name);
+
+      // Step 2: Generate quiz
+      setLoadingMsg('AI is generating questions...');
+      const quiz = await generateQuiz(resource.id, 5);
+
+      // Step 3: Create room
+      setLoadingMsg('Creating room...');
+      const room = await createRoom(quiz.id, 20);
+
+      setRoomCode(room.joinCode);
+      setRoomId(room.id);
+
+      // Step 4: Connect to socket and join room
+      const socket = getSocket();
+      socket.connect();
+
+      const token = localStorage.getItem('token');
+      socket.emit('join-room', { roomId: room.id, token });
+
+      socket.on('room-update', (data: { players: PlayerInfo[]; status: string }) => {
+        setPlayers(data.players);
+      });
+
+      socket.on('error', (data: { message: string }) => {
+        setError(data.message);
+      });
+
+      setStep('lobby');
+    } catch (err: any) {
+      console.error('Create flow error:', err);
+      setError(err?.response?.data?.error || err?.message || 'Something went wrong');
+      setStep('upload');
+    }
+  }
+
+  function handleStartGame() {
+    const socket = getSocket();
+    socket.emit('start-game', { roomId });
+
+    // Listen for the game starting, then navigate
+    socket.on('room-update', (data: { status: string }) => {
+      if (data.status === 'ACTIVE') {
+        router.push(`/game/${roomId}`);
+      }
+    });
+  }
+
+  // ─── UPLOAD STEP ───
   if (step === 'upload') {
     return (
       <>
-        <Navbar name={name} courseCode={course?.code} />
+        <NavbarCreate name={name} courseCode={course?.code} />
         <PageShell>
           <Label>Create a Room</Label>
           <Title>Upload your material</Title>
 
           {course && (
-            <div style={{
-              background: 'rgba(0,39,76,0.06)', border: '1px solid rgba(0,39,76,0.15)',
-              borderRadius: 8, padding: '0.75rem 1rem', marginBottom: 20, textAlign: 'left',
-            }}>
+            <div style={{ background: 'rgba(0,39,76,0.06)', border: '1px solid rgba(0,39,76,0.15)', borderRadius: 8, padding: '0.75rem 1rem', marginBottom: 20, textAlign: 'left' }}>
               <div style={{ fontSize: 11, fontFamily: 'monospace', color: '#8a8880', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Course</div>
               <div style={{ fontSize: 14, fontWeight: 800, color: '#00274C' }}>{course.code}</div>
               <div style={{ fontSize: 12, color: '#7a7870' }}>{course.name}</div>
@@ -93,15 +151,14 @@ export default function CreateRoom() {
           )}
 
           <Sub>Drop in any PDF — lecture notes, past exams, study guides.</Sub>
-          <label style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            flexDirection: 'column',
-            width: '100%', padding: '2.5rem 1rem',
-            border: `2px dashed ${file ? '#00274C' : 'rgba(0,39,76,0.2)'}`,
-            background: file ? 'rgba(0,39,76,0.04)' : '#faf9f7',
-            cursor: 'pointer', marginBottom: 16, transition: 'all 0.2s',
-            borderRadius: 8,
-          }}>
+
+          {error && (
+            <div style={{ background: 'rgba(192,57,43,0.1)', border: '1px solid rgba(192,57,43,0.3)', borderRadius: 8, padding: '0.75rem 1rem', marginBottom: 16, fontSize: 13, color: '#c0392b', fontFamily: 'monospace' }}>
+              ⚠ {error}
+            </div>
+          )}
+
+          <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', width: '100%', padding: '2.5rem 1rem', border: `2px dashed ${file ? '#00274C' : 'rgba(0,39,76,0.2)'}`, background: file ? 'rgba(0,39,76,0.04)' : '#faf9f7', cursor: 'pointer', marginBottom: 16, transition: 'all 0.2s', borderRadius: 8 }}>
             <input type="file" accept=".pdf" style={{ display: 'none' }} onChange={e => setFile(e.target.files?.[0] ?? null)} />
             {file ? (
               <>
@@ -113,32 +170,28 @@ export default function CreateRoom() {
               <>
                 <div style={{ fontSize: 28, marginBottom: 8 }}>⬆️</div>
                 <div style={{ fontSize: 14, fontWeight: 600, color: '#00274C' }}>Click to upload a PDF</div>
-                <div style={{ fontSize: 12, color: '#8a8880', marginTop: 4 }}>Max 20MB</div>
+                <div style={{ fontSize: 12, color: '#8a8880', marginTop: 4 }}>Max 10MB</div>
               </>
             )}
           </label>
-          <Button onClick={() => { setStep('loading'); setTimeout(() => setStep('lobby'), 3000); }} disabled={!file}>
-            Generate Quiz →
-          </Button>
+          <Button onClick={handleGenerate} disabled={!file}>Generate Quiz →</Button>
           <BackButton onClick={() => router.back()} label="← Back" />
         </PageShell>
       </>
     );
   }
 
+  // ─── LOADING STEP ───
   if (step === 'loading') {
     return (
       <>
-        <Navbar name={name} courseCode={course?.code} />
+        <NavbarCreate name={name} courseCode={course?.code} />
         <PageShell>
           <div style={{ fontSize: 36, marginBottom: 16 }}>⚙️</div>
           <Title>Generating your quiz...</Title>
-          <Sub>Our AI is reading your material and writing questions. This takes about 10–15 seconds.</Sub>
+          <Sub>{loadingMsg}</Sub>
           <div style={{ width: '100%', height: 4, background: 'rgba(0,39,76,0.1)', overflow: 'hidden', marginTop: 8, borderRadius: 4 }}>
-            <div style={{ height: '100%', background: '#00274C', animation: 'fill 3s linear forwards', borderRadius: 4 }} />
-          </div>
-          <div style={{ marginTop: 16, fontFamily: 'monospace', fontSize: 12, color: '#8a8880', letterSpacing: '0.06em' }}>
-            Reading PDF → Generating questions → Almost done...
+            <div style={{ height: '100%', background: '#00274C', animation: 'fill 8s linear forwards', borderRadius: 4 }} />
           </div>
           <style>{`@keyframes fill { from{width:0%} to{width:100%} }`}</style>
         </PageShell>
@@ -146,61 +199,59 @@ export default function CreateRoom() {
     );
   }
 
+  // ─── LOBBY STEP ───
   return (
     <>
-      <Navbar name={name} courseCode={course?.code} />
+      <NavbarCreate name={name} courseCode={course?.code} />
       <PageShell wide>
         <Label>Room Created</Label>
         <Title>Your room is ready</Title>
         <Sub>Share the code below with your friends so they can join.</Sub>
 
         {course && (
-          <div style={{
-            background: 'rgba(0,39,76,0.06)', border: '1px solid rgba(0,39,76,0.15)',
-            borderRadius: 8, padding: '0.75rem 1rem', marginBottom: 20, textAlign: 'left',
-          }}>
+          <div style={{ background: 'rgba(0,39,76,0.06)', border: '1px solid rgba(0,39,76,0.15)', borderRadius: 8, padding: '0.75rem 1rem', marginBottom: 20, textAlign: 'left' }}>
             <div style={{ fontSize: 13, fontWeight: 800, color: '#00274C' }}>{course.code} · {course.name}</div>
             {topic && <div style={{ fontSize: 12, color: '#7a7870', marginTop: 4 }}>Topic: {topic}</div>}
           </div>
         )}
 
-        <div style={{
-          background: '#00274C', padding: '1.5rem',
-          marginBottom: 20, textAlign: 'center', width: '100%', borderRadius: 8,
-        }}>
+        {error && (
+          <div style={{ background: 'rgba(192,57,43,0.1)', border: '1px solid rgba(192,57,43,0.3)', borderRadius: 8, padding: '0.75rem 1rem', marginBottom: 16, fontSize: 13, color: '#c0392b', fontFamily: 'monospace' }}>
+            ⚠ {error}
+          </div>
+        )}
+
+        <div style={{ background: '#00274C', padding: '1.5rem', marginBottom: 20, textAlign: 'center', width: '100%', borderRadius: 8 }}>
           <div style={{ fontSize: 11, fontFamily: 'monospace', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.5)', marginBottom: 8, textTransform: 'uppercase' }}>Room Code</div>
           <div style={{ fontSize: 48, fontFamily: 'monospace', fontWeight: 800, letterSpacing: '0.2em', color: '#FFCB05' }}>{roomCode}</div>
-          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 8 }}>Ask your friends to go to the site and enter this code</div>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 8 }}>Ask your friends to enter this code to join</div>
         </div>
 
         <div style={{ width: '100%', textAlign: 'left', marginBottom: 20 }}>
-          <div style={{ fontSize: 11, fontFamily: 'monospace', letterSpacing: '0.1em', color: '#8a8880', marginBottom: 12, textTransform: 'uppercase' }}>Players joined</div>
-          <PlayerRow name={name} isHost />
-          <div style={{ fontSize: 13, color: '#8a8880', fontStyle: 'italic', marginTop: 8, textAlign: 'center' }}>Waiting for others to join...</div>
+          <div style={{ fontSize: 11, fontFamily: 'monospace', letterSpacing: '0.1em', color: '#8a8880', marginBottom: 12, textTransform: 'uppercase' }}>
+            Players joined ({players.length})
+          </div>
+          {players.map(p => (
+            <PlayerRow key={p.id} name={p.name} isHost={p.isHost} />
+          ))}
+          {players.length < 2 && (
+            <div style={{ fontSize: 13, color: '#8a8880', fontStyle: 'italic', marginTop: 8, textAlign: 'center' }}>Waiting for others to join...</div>
+          )}
         </div>
 
-        <Button onClick={() => router.push('/game/demo')}>Start Game →</Button>
+        <Button onClick={handleStartGame}>Start Game →</Button>
         <div style={{ fontSize: 12, color: '#8a8880', marginTop: 8, fontFamily: 'monospace' }}>Only you (the host) can start the game</div>
       </PageShell>
     </>
   );
 }
 
+// ─── Shared Components ───
+
 function PageShell({ children, wide }: { children: React.ReactNode; wide?: boolean }) {
   return (
-    <div style={{
-      minHeight: 'calc(100vh - 56px)', background: '#f5f4f0',
-      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-      padding: '2rem 1rem',
-      backgroundImage: 'linear-gradient(rgba(0,39,76,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(0,39,76,0.025) 1px, transparent 1px)',
-      backgroundSize: '36px 36px',
-    }}>
-      <div style={{
-        background: '#fff', border: '1px solid rgba(0,0,0,0.08)',
-        padding: '3rem 2.5rem', width: '100%', maxWidth: wide ? 520 : 440,
-        textAlign: 'center', boxShadow: '0 2px 40px rgba(0,0,0,0.06)', position: 'relative',
-        borderRadius: 12,
-      }}>
+    <div style={{ minHeight: 'calc(100vh - 56px)', background: '#f5f4f0', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '2rem 1rem', backgroundImage: 'linear-gradient(rgba(0,39,76,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(0,39,76,0.025) 1px, transparent 1px)', backgroundSize: '36px 36px' }}>
+      <div style={{ background: '#fff', border: '1px solid rgba(0,0,0,0.08)', padding: '3rem 2.5rem', width: '100%', maxWidth: wide ? 520 : 440, textAlign: 'center', boxShadow: '0 2px 40px rgba(0,0,0,0.06)', position: 'relative', borderRadius: 12 }}>
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 4, background: '#00274C', borderRadius: '12px 12px 0 0' }} />
         {children}
       </div>
@@ -222,51 +273,25 @@ function Sub({ children }: { children: React.ReactNode }) {
 
 function Button({ children, onClick, disabled }: { children: React.ReactNode; onClick: () => void; disabled?: boolean }) {
   return (
-    <button onClick={onClick} disabled={disabled} style={{
-      width: '100%', padding: '0.85rem',
-      background: disabled ? '#e0ddd8' : '#00274C',
-      border: 'none', color: disabled ? '#aaa' : '#FFCB05',
-      fontFamily: 'monospace', fontSize: 13, fontWeight: 700,
-      letterSpacing: '0.08em', textTransform: 'uppercase',
-      cursor: disabled ? 'not-allowed' : 'pointer', marginTop: 8,
-      borderRadius: 8,
-    }}>{children}</button>
+    <button onClick={onClick} disabled={disabled} style={{ width: '100%', padding: '0.85rem', background: disabled ? '#e0ddd8' : '#00274C', border: 'none', color: disabled ? '#aaa' : '#FFCB05', fontFamily: 'monospace', fontSize: 13, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', cursor: disabled ? 'not-allowed' : 'pointer', marginTop: 8, borderRadius: 8 }}>{children}</button>
   );
 }
 
 function BackButton({ onClick, label }: { onClick: () => void; label: string }) {
   return (
-    <button onClick={onClick} style={{
-      background: 'none', border: 'none', color: '#8a8880',
-      fontSize: 13, fontFamily: 'monospace', cursor: 'pointer',
-      marginTop: 12, letterSpacing: '0.05em',
-    }}>{label}</button>
+    <button onClick={onClick} style={{ background: 'none', border: 'none', color: '#8a8880', fontSize: 13, fontFamily: 'monospace', cursor: 'pointer', marginTop: 12, letterSpacing: '0.05em' }}>{label}</button>
   );
 }
 
 function PlayerRow({ name, isHost }: { name: string; isHost?: boolean }) {
   return (
-    <div style={{
-      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      padding: '10px 14px', background: '#f5f4f0',
-      border: '1px solid rgba(0,0,0,0.06)', marginBottom: 6, borderRadius: 8,
-    }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: '#f5f4f0', border: '1px solid rgba(0,0,0,0.06)', marginBottom: 6, borderRadius: 8 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <div style={{
-          width: 32, height: 32, borderRadius: '50%',
-          background: '#00274C', color: '#FFCB05',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 13, fontWeight: 800,
-        }}>{name[0]?.toUpperCase()}</div>
+        <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#00274C', color: '#FFCB05', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800 }}>{name[0]?.toUpperCase()}</div>
         <span style={{ fontSize: 14, fontWeight: 600, color: '#1a1916' }}>{name}</span>
       </div>
       {isHost && (
-        <span style={{
-          fontSize: 10, fontFamily: 'monospace', letterSpacing: '0.08em',
-          textTransform: 'uppercase', background: 'rgba(0,39,76,0.08)',
-          color: '#00274C', padding: '3px 8px', border: '1px solid rgba(0,39,76,0.2)',
-          fontWeight: 700, borderRadius: 4,
-        }}>Host</span>
+        <span style={{ fontSize: 10, fontFamily: 'monospace', letterSpacing: '0.08em', textTransform: 'uppercase', background: 'rgba(0,39,76,0.08)', color: '#00274C', padding: '3px 8px', border: '1px solid rgba(0,39,76,0.2)', fontWeight: 700, borderRadius: 4 }}>Host</span>
       )}
     </div>
   );
