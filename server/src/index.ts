@@ -3,6 +3,7 @@ import cors from "cors";
 import http from "http";
 import { Server as SocketServer } from "socket.io";
 import dotenv from "dotenv";
+import leaderboardRoutes from "./routes/leaderboard";
 
 // Load .env variables BEFORE importing anything that uses them
 dotenv.config();
@@ -42,8 +43,8 @@ app.use("/api/auth", authRoutes);
 app.use("/api/resources", resourceRoutes);
 app.use("/api/quizzes", quizRoutes);
 app.use("/api/rooms", roomRoutes);
-// ─── Person C: add any new route files here ───
-// app.use("/api/some-new-route", someNewRoutes);
+app.use("/api/rooms", roomRoutes);
+app.use("/api/leaderboard", leaderboardRoutes);
 
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
