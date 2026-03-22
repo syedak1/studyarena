@@ -1,6 +1,9 @@
 import "dotenv/config";
 import { defineConfig, env } from "prisma/config";
 
+
+
+
 declare const process: {
   env: {
     [key: string]: string | undefined;
