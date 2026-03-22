@@ -5,16 +5,14 @@ import fs from "fs";
 import prisma from "../lib/prisma";
 import { authMiddleware, AuthRequest } from "../middleware/auth";
 
-// ─── Person C's PDF parser service ───
-// Try to load Person C's services/pdfParser.ts at runtime; if it's not a module yet,
-// fall back to the local pdf-parse implementation so compilation/runtime succeed.
 let extractTextFromPDF: (filePath: string) => Promise<string>;
+
 try {
   const mod = require("../services/pdfParser");
   extractTextFromPDF = (mod && (mod.extractTextFromPDF ?? mod.default ?? mod)) as any;
 } catch (err) {
-
   const pdfParse = require("pdf-parse");
+
   extractTextFromPDF = async function (filePath: string): Promise<string> {
     const buffer = fs.readFileSync(filePath);
     const data = await pdfParse(buffer);
@@ -24,13 +22,11 @@ try {
 
 const router = Router();
 
-// Ensure uploads directory exists (from Person C)
 const uploadDir = path.resolve("uploads");
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
-// Configure multer
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => {
     cb(null, uploadDir);
@@ -50,32 +46,43 @@ const upload = multer({
     }
     cb(null, true);
   },
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB max
+  limits: { fileSize: 10 * 1024 * 1024 },
 });
 
-// POST /api/resources/upload
-// Auth required (Person B) + Person C's PDF extraction logic
 router.post(
   "/upload",
   authMiddleware,
   upload.single("file"),
   async (req: AuthRequest, res: Response) => {
     try {
+      console.log("upload hit");
+      console.log("file:", req.file?.originalname, req.file?.mimetype, req.file?.size);
+      console.log("title:", req.body.title);
+      console.log("user:", req.user);
+
       const title = req.body.title;
       if (!title) {
         res.status(400).json({ error: "Title is required" });
         return;
       }
+
       if (!req.file) {
         res.status(400).json({ error: "PDF file is required" });
         return;
       }
 
-      const userId = req.user!.id;
+      if (!req.user?.id) {
+        res.status(401).json({ error: "User not authenticated" });
+        return;
+      }
+
+      const userId = req.user.id;
       const filePath = req.file.path;
 
-      // Person C's extraction service
+      console.log("filePath:", filePath);
+
       const extractedText = await extractTextFromPDF(filePath);
+      console.log("extracted text length:", extractedText?.length);
 
       const resource = await prisma.resource.create({
         data: {
@@ -83,7 +90,7 @@ router.post(
           fileName: req.file.filename,
           fileUrl: filePath,
           extractedText,
-          uploaderId: userId, // from JWT, not hardcoded "testUser"
+          uploaderId: userId,
         },
       });
 
@@ -95,6 +102,7 @@ router.post(
         textLength: extractedText.length,
       });
     } catch (error) {
+      console.error("Upload route error:", error);
       res.status(500).json({
         error: error instanceof Error ? error.message : "Upload failed",
       });
@@ -102,7 +110,6 @@ router.post(
   }
 );
 
-// GET /api/resources
 router.get("/", authMiddleware, async (req: AuthRequest, res: Response) => {
   try {
     const resources = await prisma.resource.findMany({
@@ -116,6 +123,7 @@ router.get("/", authMiddleware, async (req: AuthRequest, res: Response) => {
         _count: { select: { quizzes: true } },
       },
     });
+
     res.json(resources);
   } catch (error) {
     res.status(500).json({ error: "Failed to list resources" });
